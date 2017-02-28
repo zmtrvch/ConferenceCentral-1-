@@ -48,16 +48,26 @@ public class ConferenceApi {
 
     // TODO 1 Pass the ProfileForm parameter
     // TODO 2 Pass the User parameter
-    public Profile saveProfile() throws UnauthorizedException {
+    public Profile saveProfile(final User user, ProfileForm form) throws UnauthorizedException {
 
-        String userId = null;
-        String mainEmail = null;
+        String userId = user.getUserId();
+        String mainEmail = user.getEmail();
         String displayName = "Your name will go here";
         TeeShirtSize teeShirtSize = TeeShirtSize.NOT_SPECIFIED;
 
+         displayName = form.getDisplayName();
+         if(displayName == null){
+             displayName = extractDefaultDisplayNameFromEmail(user.getEmail());
+         }
+
+        if(form.getTeeShirtSize() != null) {
+            teeShirtSize = form.getTeeShirtSize();
+        }
         // TODO 2
         // If the user is not logged in, throw an UnauthorizedException
-
+        if(user == null){
+             throw new UnauthorizedException("You are not logged in");
+        }
         // TODO 1
         // Set the teeShirtSize to the value sent by the ProfileForm, if sent
         // otherwise leave it as the default value
