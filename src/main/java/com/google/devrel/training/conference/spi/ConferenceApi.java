@@ -3,7 +3,7 @@ package com.google.devrel.training.conference.spi;
 
 import static com.google.devrel.training.conference.service.OfyService.factory;
 import static com.google.devrel.training.conference.service.OfyService.ofy;
-
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -281,7 +281,7 @@ public class ConferenceApi {
         }
         return conference;
     }
-    5
+
 
     /**
      * Just a wrapper for Boolean.
@@ -330,7 +330,7 @@ public class ConferenceApi {
 
     public WrappedBoolean registerForConference(final User user,
 
-                                                @Named("websafeConferenceKey") final String websafeConferenceKey)
+                                                        @Named("websafeConferenceKey") final String websafeConferenceKey)
 
             throws UnauthorizedException, NotFoundException,
 
@@ -449,6 +449,44 @@ public class ConferenceApi {
         return result;
 
     }
+    /**
+     * Returns a collection of Conference Object that the user is going to attend.
+     *
+     * @param user An user who invokes this method, null when the user is not signed in.
+     * @return a Collection of Conferences that the user is going to attend.
+     * @throws UnauthorizedException when the User object is null.
+     */
+    @ApiMethod(
+            name = "getConferencesToAttend",
+            path = "getConferencesToAttend",
+            httpMethod = HttpMethod.GET
+    )
+    public Collection<Conference> getConferencesToAttend(final User user)
+            throws UnauthorizedException, NotFoundException {
+        // If not signed in, throw a 401 error.
+        if (user == null) {
+            throw new UnauthorizedException("Authorization required");
+        }
+        // TODO
+        // Get the Profile entity for the user
+        Profile profile = getProfileFromUser(user); // Change this;
+        if (profile == null) {
+            throw new NotFoundException("Profile doesn't exist.");
+        }
+
+        // TODO
+        // Get the value of the profile's conferenceKeysToAttend property
+        List<String> keyStringsToAttend = profile.getConferenceKeysToAttend(); // change this
+
+        // TODO
+        // Iterate over keyStringsToAttend,
+        // and return a Collection of the
+        // Conference entities that the user has registered to atend
+        
+
+        return null;  // change this
+    }
+
 
 
 }
