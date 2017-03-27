@@ -3,6 +3,11 @@ package com.google.devrel.training.conference.spi;
 
 import static com.google.devrel.training.conference.service.OfyService.factory;
 import static com.google.devrel.training.conference.service.OfyService.ofy;
+import com.google.appengine.api.memcache.MemcacheServiceFactory;
+import com.google.appengine.api.taskqueue.Queue;
+import com.google.appengine.api.taskqueue.QueueFactory;
+import com.google.appengine.api.taskqueue.TaskOptions;
+import com.google.appengine.api.memcache.MemcacheService;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,6 +18,7 @@ import com.google.api.server.spi.response.ConflictException;
 import com.google.api.server.spi.response.ForbiddenException;
 import com.google.api.server.spi.response.NotFoundException;
 
+import com.google.devrel.training.conference.domain.Announcement;
 import com.google.devrel.training.conference.form.ConferenceQueryForm;
 import com.googlecode.objectify.Work;
 import com.googlecode.objectify.cmd.Query;
@@ -192,6 +198,7 @@ public class ConferenceApi {
         // TODO (Lesson 4)
         // Get the Conference Id from the Key
         final long conferenceId = conferenceKey.getId();
+        final Queue queue = QueueFactory.getDefaultQueue();
 
                 // TODO (Lesson 4)
                 // Get the existing Profile entity for the current user if there is one
@@ -206,6 +213,10 @@ public class ConferenceApi {
         // TODO (Lesson 4)
         // Save Conference and Profile Entities
         ofy().save().entities(conference,profile).now();
+        queue.add(ofy().getTransaction(),
+                TaskOptions.Builder.withUrl("/tasks/send_confirmation_email")
+                        .param("email", profile.getMainEmail())
+                        .param("conferenceInfo", conference.toString()));
 
 
         return conference;
@@ -229,7 +240,6 @@ public class ConferenceApi {
         ofy().load().keys(organizersKeyList);
         return result;
     }
-
 
     @ApiMethod(
             name = "getConferencesCreated",
@@ -477,16 +487,43 @@ public class ConferenceApi {
         // TODO
         // Get the value of the profile's conferenceKeysToAttend property
         List<String> keyStringsToAttend = profile.getConferenceKeysToAttend(); // change this
-
-        // TODO
-        // Iterate over keyStringsToAttend,
-        // and return a Collection of the
-        // Conference entities that the user has registered to atend
-        
-
-        return null;  // change this
+        List<Key<Conference>> keysToAttend = new ArrayList<>();
+        for (String keyString : keyStringsToAttend) {
+            keysToAttend.add(Key.<Conference>create(keyString));
+        }
+        return ofy().load().keys(keysToAttend).values();
     }
-
+    /**
+     * Unregister from the specified Conference.     *
+     * @param user An user who invokes this method, null when the user is not signed in.
+     * @param websafeConferenceKey The String representation of the Conference Key to unregister  from.
+     * @return Boolean true when success, otherwise false.
+     * @throws UnauthorizedException when the user is not signed in.
+     * @throws NotFoundException when there is no Conference with the given conferenceId.
+     */
+    @ApiMethod(
+            name = "unregisterFromConference",
+            path = "conference/{websafeConferenceKey}/registration",
+            httpMethod = HttpMethod.DELETE)
+    public WrappedBoolean unregisterFromConference(
+            final User user,
+            @Named("websafeConferenceKey") final String websafeConferenceKey
+    ) throws UnauthorizedException, NotFoundException, ForbiddenException, ConflictException {
+        return null;
+    }
+    @ApiMethod(
+            name = "getAnnouncement",
+            path = "announcement",
+            httpMethod = HttpMethod.GET
+    )
+    public Announcement getAnnouncement() {
+        MemcacheService memcacheService = MemcacheServiceFactory.getMemcacheService();
+        Object message = memcacheService.get(Constants.MEMCACHE_ANNOUNCEMENTS_KEY);
+        if (message != null) {
+            return new Announcement(message.toString());
+        }
+        return null;
+    }
 
 
 }
